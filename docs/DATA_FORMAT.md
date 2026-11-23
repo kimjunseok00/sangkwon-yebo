@@ -36,7 +36,7 @@
 |---|---|---|
 | `load_store_files(paths, food_only=True)` | ingest.seoul | CSV 경로들 → 분기 패널 |
 | `attach_sales(panel, paths)` | ingest.seoul | 패널 + 매출 CSV → 패널 |
-| `load_area_coords(path)` | ingest.seoul | 영역 CSV → `area_code, lat, lon` (이슈 #5) |
+| `load_area_coords(path)` | ingest.seoul | 영역 CSV → `area_code, lat, lon` (이슈 #6) |
 | `build_dataset(panel)` | features.build | 분기 패널 → 실험용 표 |
 | `fit(train)`, `predict_score(model, df)` | models.model | 학습 / 위험 확률 |
 | `BASELINES` | models.baselines | 이름 → 점수 함수 (작년 폐업률, 3년 평균) |

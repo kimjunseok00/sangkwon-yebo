@@ -1,4 +1,4 @@
-"""원본 CSV → data/processed/dataset.csv 한 번에 만들기. (이슈 #1, 팀원 A)
+"""원본 CSV → data/processed/dataset.csv 한 번에 만들기. (이슈 #2, 주초현)
 
 실행 예:
   python scripts_build_dataset.py --stores data/raw/store_*.csv --sales data/raw/sales_*.csv

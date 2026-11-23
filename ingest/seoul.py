@@ -1,4 +1,4 @@
-"""서울열린데이터광장 '서울시 상권분석서비스' CSV를 읽어 분기 패널로 만든다. (이슈 #1, 팀원 A)
+"""서울열린데이터광장 '서울시 상권분석서비스' CSV를 읽어 분기 패널로 만든다. (이슈 #2, 주초현)
 
 주의: 아래 COLUMN_MAP의 원본 열 이름은 '예상값'이다. 실제 파일을 받으면 가장 먼저
 `python -m ingest.seoul --inspect 파일경로`로 열 이름을 확인하고, 다르면 팀장에게 알려 이 표를 고친다.
@@ -84,13 +84,13 @@ def attach_sales(panel: pd.DataFrame, paths: list[Path]) -> pd.DataFrame:
 
 
 def load_area_coords(path: Path) -> pd.DataFrame:
-    """영역-상권 CSV에서 상권 중심 좌표를 읽어 위경도로 바꾼다. (이슈 #5, 팀원 B)
+    """영역-상권 CSV에서 상권 중심 좌표를 읽어 위경도로 바꾼다. (이슈 #6, 주초현)
 
     구현 안내: 원본 좌표는 TM 좌표계로 알려져 있다(EPSG 번호는 파일 설명에서 확인).
     pyproj.Transformer.from_crs("EPSG:xxxx", "EPSG:4326", always_xy=True)로 변환한다.
     반환 열: area_code, lat, lon
     """
-    raise NotImplementedError("이슈 #5에서 구현")
+    raise NotImplementedError("이슈 #6에서 구현")
 
 
 def main() -> None:

@@ -14,7 +14,7 @@
   - 프랜차이즈 여부는 인허가 데이터에 없어서 결측(NaN)으로 둔다. 0으로 채우지 않는다.
 
 ⚠️ 열 이름은 공공데이터포털 메타데이터 기준 '예상값'이다. 실제 파일을
-   `python -m ingest.localdata --inspect 파일.csv`로 확인하고 COLUMN_CANDIDATES를 맞춘다(#18).
+   `python -m ingest.localdata --inspect 파일.csv`로 확인하고 COLUMN_CANDIDATES를 맞춘다(#20).
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ COLUMN_CANDIDATES: dict[str, list[str]] = {
 # 주소는 여러 열 중 있는 것을 순서대로 채운다(지번주소가 비어 있으면 도로명주소로).
 ADDRESS_CANDIDATES = ["소재지전체주소", "지번주소", "도로명전체주소", "도로명주소"]
 
-CLOSED_STATUS = "폐업"  # 영업상태명 값. 실제 값(예: '폐업', '취소/말소/만료/정지/중지')을 #18에서 확인
+CLOSED_STATUS = "폐업"  # 영업상태명 값. 실제 값(예: '폐업', '취소/말소/만료/정지/중지')을 #20에서 확인
 
 # 업태구분명 → 전국판 업종. 서울판 10개 업종과 1:1로 맞지 않으므로 코드를 따로 쓴다(NL = National).
 # 값 목록은 실제 파일의 업태 빈도표를 보고 고친다. 여기 없는 업태는 '미분류'로 세고 계산에서 뺀다.
@@ -152,7 +152,7 @@ def _area_name(address: pd.Series) -> pd.Series:
 def clean_records(raw: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     """원본 행을 정리하고, 빠진 행이 몇 개인지 보고서(dict)를 함께 돌려준다.
 
-    결측을 조용히 버리지 않고 report에 남겨, #18 판정에서 데이터 품질을 숫자로 볼 수 있게 한다.
+    결측을 조용히 버리지 않고 report에 남겨, #20 판정에서 데이터 품질을 숫자로 볼 수 있게 한다.
     """
     df = raw.copy()
     df["open_date"] = _parse_date(df["open_date"])
@@ -255,7 +255,7 @@ def to_quarterly_panel(records: pd.DataFrame, first_year: int = FIRST_YEAR,
 
 
 def inspect(path: Path) -> None:
-    """#18 판정용: 열 이름, 연도별 폐업 기록 수, 업태 빈도를 출력한다."""
+    """#20 판정용: 열 이름, 연도별 폐업 기록 수, 업태 빈도를 출력한다."""
     head = None
     for enc in ("cp949", "utf-8-sig"):
         try:
@@ -282,7 +282,7 @@ def inspect(path: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="인허가 데이터 → 전국판 분기 패널과 dataset")
     parser.add_argument("csv", type=Path)
-    parser.add_argument("--inspect", action="store_true", help="열 이름과 품질만 확인(#18)")
+    parser.add_argument("--inspect", action="store_true", help="열 이름과 품질만 확인(#20)")
     parser.add_argument("--out-dir", type=Path, default=Path("data/processed"))
     opts = parser.parse_args()
     if opts.inspect:
