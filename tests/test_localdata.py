@@ -111,3 +111,23 @@ def test_reads_public_data_portal_format(tmp_path):
     assert list(raw["address"]) == ["서울특별시 마포구 월드컵로 1", "서울특별시 마포구 망원동 2"]
     records, report = clean_records(raw)
     assert report["kept"] == 2
+
+
+def test_area_centroids_from_store_coordinates():
+    """가게 좌표(EPSG:5174) 중앙값 → 위경도. 서울 시청 부근 좌표가 서울 위경도로 바뀌는지 확인."""
+    from pyproj import Transformer
+
+    from ingest.localdata import area_centroids
+
+    # 서울 시청(약 37.566, 126.978)을 EPSG:5174로 바꾼 좌표 주변에 가게 3곳
+    x0, y0 = Transformer.from_crs("EPSG:4326", "EPSG:5174", always_xy=True).transform(126.978, 37.566)
+    records = pd.DataFrame({
+        "authority_code": ["3000000"] * 3 + ["9999999"],
+        "address": ["서울특별시 중구 태평로1가 1"] * 3 + ["바다 어딘가"],
+        "x": [x0 - 10, x0, x0 + 10, 0.0],  # 마지막 가게는 좌표 없음(0) → 빠져야 함
+        "y": [y0 - 10, y0, y0 + 10, 0.0],
+    })
+    out = area_centroids(records)
+    assert list(out["area_code"]) == ["3000000"]
+    assert abs(out["lat"].iloc[0] - 37.566) < 0.001 and abs(out["lon"].iloc[0] - 126.978) < 0.001
+    assert out["area_name"].iloc[0] == "서울특별시 중구"

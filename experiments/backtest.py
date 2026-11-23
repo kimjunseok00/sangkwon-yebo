@@ -67,6 +67,18 @@ def run_backtest(data: pd.DataFrame, test_years=config.TEST_FEATURE_YEARS) -> pd
     return pd.DataFrame(rows, columns=RESULT_COLUMNS)
 
 
+def predict_test_year(data: pd.DataFrame, test_year: int) -> pd.DataFrame:
+    """run_backtest와 같은 분할(학습 ≤ test_year-1)로 학습해, 시험 행에 모델 점수(score)를 붙여 돌려준다.
+
+    타임머신 화면(history.csv)용. 채점 규칙은 run_backtest와 같고, 결과 표 대신 칸별 예측을 남긴다.
+    """
+    train, test = split(data, test_year)
+    if test.empty or train.empty:
+        return test.assign(score=pd.Series(dtype=float))
+    fitted = model_mod.fit(train)
+    return test.assign(score=model_mod.predict_score(fitted, test))
+
+
 def gate(results: pd.DataFrame) -> dict:
     """11/26 통과 판정. 규칙은 core/config.py와 docs/EXPERIMENTS.md에 미리 적어 둔 것만 쓴다."""
     if results.empty:

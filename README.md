@@ -12,8 +12,9 @@
 
 ```
 공공데이터(서울 상권, 전국 인허가) → 분기 패널(같은 형식) → 특징·정답 → 연도별 과거 맞히기 시험(누설 방지)
-   → 성적표 + 최신 위험 점수(experiments.publish) → 화면(Streamlit) / 금융기관용 API(FastAPI)
-   ↑ GitHub Actions: PR마다 테스트(CI), 분기마다 자동 갱신(#22)
+   → 성적표 + 최신 위험 점수 → published/<seoul|national>/   ← python -m experiments.make_all 한 번
+   → core/published.py로 같은 파일을 읽음 → 화면(Streamlit) / 금융기관용 API(FastAPI)
+   ↑ GitHub Actions: PR마다 테스트(CI), 분기마다 자동 갱신(#24)
 ```
 
 발표: 2026-12-21(월). 일정은 `docs/ISSUES.md`.
@@ -41,9 +42,16 @@ python scripts_build_dataset.py --stores data/raw/store_*.csv --sales data/raw/s
 python -m experiments.backtest --data data/processed/dataset.csv
 
 # 전국판 (인허가 데이터)
-python -m ingest.localdata data/raw/localdata_food.csv --inspect   # 열 이름·품질 확인(#18)
+python -m ingest.localdata data/raw/localdata_food.csv --inspect   # 열 이름·품질 확인(#20)
 python -m ingest.localdata data/raw/localdata_food.csv              # national_dataset.csv
 python -m experiments.backtest --data data/processed/national_dataset.csv
+```
+
+한 번에 만들기 (화면·API가 읽는 결과까지):
+
+```bash
+python -m experiments.make_all          # data/raw에 있는 원본만 처리, 없는 쪽은 건너뜀
+streamlit run app.py                    # 서울판/전국판 선택. 결과가 없으면 가상 데이터 + 경고
 ```
 
 API 띄우기:
@@ -68,7 +76,7 @@ uvicorn api.main:app --reload    # http://127.0.0.1:8000/docs 에서 키 넣고 
 |---|---|---|---|
 | `core/` | 설정, 열 이름 약속, Gemini 호출 | 팀장 | 완료 |
 | `ingest/seoul.py`, `scripts_build_dataset.py` | 서울시 CSV 읽기, 좌표 변환, dataset 만들기 | 주초현 | 읽기 완료, 열 이름 확인 필요 |
-| `ingest/localdata.py` | 전국 인허가 → 서울판과 같은 분기 패널 | 주초현 (열 이름·업태 표는 팀장 #18) | 변환 완료, 열 이름 확인 필요 |
+| `ingest/localdata.py` | 전국 인허가 → 서울판과 같은 분기 패널 | 주초현 (열 이름·업태 표는 팀장 #20) | 변환 완료, 열 이름 확인 필요 |
 | `api/` | 금융기관용 API (키 확인, 호출 기록, 자동 문서) | 이민준 | 뼈대 완료 |
 | `.github/workflows/` | PR마다 자동 테스트 | 팀장 | 완료 |
 | `features/build.py` | 연 단위 집계, 특징, 정답 | 팀장 (특징 추가는 이민준) | 완료 |

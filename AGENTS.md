@@ -20,18 +20,34 @@
 6. **담당 경로 밖 파일을 수정하지 않는다.**
    - 이민준(acme31): `models/model.py`, `engine/`, `prompts/`, `ui/scorecard.py`, `api/`, `tests/test_model_*.py`, `tests/test_api*.py`
    - 주초현(chochohyun): `ingest/`(단 `ingest/localdata.py`의 열 이름·업태 표는 팀장 확인 후), `scripts_build_dataset.py`, `app.py`, `ui/`(scorecard.py 제외), `tests/test_ingest_*.py`, `tests/test_localdata*.py`, `tests/test_ui_*.py`
-   - `core/`, `features/`, `experiments/`(publish·crosscheck 포함), `models/baselines.py`, `docs/`, `.github/`, `AGENTS.md`, `requirements.txt`는 팀장만.
+   - `core/`(`core/published.py` 포함), `features/`, `experiments/`(publish·crosscheck·make_all 포함), `models/baselines.py`, `docs/`, `.github/`, `AGENTS.md`, `requirements.txt`는 팀장만.
 7. **라이브러리를 새로 추가하지 않는다.** 필요하면 이유와 함께 제안만 한다.
 8. **API 키·비밀 값은 코드에 쓰지 않는다.** `.env`에서 `core/config.py`로 읽는다.
 9. **데이터를 웹에서 크롤링하지 않는다.** 서울열린데이터광장, 공공데이터포털·LOCALDATA에서 받은 파일만 쓴다.
 10. **API 응답에서 `track_record`(과거 성적)와 `caution`(주의 문구)을 빼지 않는다.** API는 `experiments.publish`가 만든 파일만 읽고, 요청마다 모델을 학습하지 않는다.
 11. **API 키 원문을 기록·저장하지 않는다.** 호출 기록에는 해시 앞자리(`key_id`)만 남긴다.
+12. **화면(`app.py`, `ui/`)과 API(`api/`)는 `published/` 결과만 읽는다.** 읽기는 `core/published.py`(`load_all`, `Dataset`)로 한다.
+    화면에서 모델을 학습하거나 실험(`run_backtest`)을 다시 돌리지 않는다. 결과를 새로 만들 때는 `python -m experiments.make_all`.
+    필요한 값이 `scores.csv`·`meta.json`에 없으면 화면에서 계산하지 말고 팀장에게 요청한다(`experiments/publish.py`에 추가).
 
 ## 화면 문구 규칙
-- "망한다", "반드시", "성공 보장" 같은 단정 표현 금지. "위험이 높은 편", "과거 통계상" 등을 쓴다.
+- "망한다", "반드시", "성공 보장" 같은 단정 표현 금지. "과거 통계상", "가능성이 높은 편" 등을 쓴다.
+- **예보 단계는 `core.schemas.LEVELS`(평이 / 관심 / 주의)만 쓴다.** '경보', '위험 지역', '고위험' 같은 말로 바꾸지 않는다.
+- 점수(score, 0~1)는 화면에 보여 주지 않는다(확률로 오해됨). "같은 업종 N곳 중 k번째"(`rank_in_industry`, `n_in_industry`)와 단계로 보여 준다.
+- '주의' 예보 옆에는 그 예보의 지난 적중률(`meta.json`의 `caution_hit_rate`)과 무작위 기준을 함께 보여 준다.
 - 모든 예측 화면에 "과거 통계 기반 참고 정보이며 개별 점포의 성패를 보장하지 않습니다"를 표시한다.
 - 성적표를 숨기지 않는다. 모델이 기준선보다 못한 해도 그대로 보여준다.
 - 가상 데이터일 때는 화면 맨 위에 경고를 띄운다.
+- "AI가 분석했습니다", "AI 예측" 같은 문구 금지. "과거 통계 기반 예보"로 쓴다.
+
+## 화면 스타일 규칙 (AI가 만든 느낌을 없앤다)
+- 기상특보처럼 **단계 이름 + 색 띠**로 표현하고, 그 아래에 숫자(순위, 적중률)를 둔다.
+- **이모지 금지.** 아이콘이 꼭 필요하면 단순한 선 아이콘 하나만, 팀장과 합의 후.
+- 색은 단계 색 3개만 강조에 쓰고 나머지는 흑백·회색: 평이 `#9AA0A6`(회색), 관심 `#E0A100`(노랑), 주의 `#D9480F`(주황).
+  보라·파랑 그라데이션, 반짝임·그림자 효과, 둥근 카드 여러 개를 늘어놓는 배치는 쓰지 않는다.
+- 서체는 하나로 통일(Pretendard, 없으면 기본 산세리프). 제목은 크게, 본문은 담백하게.
+- 신문 그래픽처럼 표·그래프 아래에 **출처와 기준일**을 작게 단다(예: "자료: 행정안전부 인허가 데이터, 2025년 기준").
+- Streamlit 기본 장식(풍선, 눈 내리기, 과한 st.success 초록 박스)은 쓰지 않는다.
 
 ## 코드 스타일
 - 타입 힌트, 공개 함수에 한국어 docstring(의도와 입출력), "왜"를 설명하는 한국어 주석.
