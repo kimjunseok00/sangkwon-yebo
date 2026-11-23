@@ -42,3 +42,12 @@ GATE_MIN_AUC_GAIN: float = 0.02
 GATE_MIN_YEARS: int = 2
 
 RANDOM_SEED: int = 0
+
+# --- 화면·API 공통 안내 문구 (AGENTS.md 화면 문구 규칙) ---
+CAUTION_TEXT: str = "과거 통계 기반 참고 정보이며, 개별 점포의 성패를 보장하지 않습니다."
+
+# --- 금융기관용 API ---
+# 쉼표로 구분한 키 목록. 키는 .env나 배포 서비스의 비밀 설정에만 둔다(코드·저장소에 쓰지 않는다).
+API_KEYS: tuple[str, ...] = tuple(k.strip() for k in os.getenv("API_KEYS", "").split(",") if k.strip())
+PUBLISHED_DIR: Path = Path(os.getenv("PUBLISHED_DIR", str(PROCESSED_DIR / "published")))
+API_LOG_PATH: Path = Path(os.getenv("API_LOG_PATH", str(ROOT / "logs" / "api_calls.jsonl")))

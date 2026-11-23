@@ -73,6 +73,20 @@ RESULT_COLUMNS = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# 4) 서비스용 위험 점수 표: experiments.publish가 만들고 api/·화면이 읽는다
+# ---------------------------------------------------------------------------
+SCORE_COLUMNS = [
+    "area_code", "area_name", "area_type", "industry_code", "industry_name",
+    "base_year",  # 특징을 만든 연도(예: 2025)
+    "predict_year",  # 예측하는 연도(예: 2026)
+    "score",  # 모델 점수(0~1). 확률처럼 읽지 않는다
+    "percentile",  # 같은 업종 안 백분위(1에 가까울수록 위험이 높은 편)
+    "level",  # 낮은 편 / 보통 / 높은 편(업종 내 상위 25%)
+    "close_rate", "close_rate_3y", "stores_avg",  # 근거 숫자
+]
+
+
 class SchemaError(ValueError):
     """표에 필요한 열이 없을 때. 어떤 열이 빠졌는지 메시지에 적는다."""
 

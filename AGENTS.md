@@ -4,8 +4,11 @@
 작업 전 `docs/DATA_FORMAT.md`와 `core/schemas.py`를 먼저 읽는다.
 
 ## 프로젝트
-- 서울시 상권분석서비스 공개 데이터로, 상권×외식업종별 다음 해 폐업 위험을 예측하고 과거 성적을 공개한다.
-- Python 3.11 이상, pandas, scikit-learn, Streamlit, Plotly, Gemini(`google-genai`, 설명 문장에만 사용).
+- 지역×외식업종별 다음 해 폐업 위험을 예측하고 과거 성적을 공개한다.
+  - 서울판(검증판): 서울시 상권분석서비스, 상권 단위
+  - 전국판(제품): 행정안전부 지방행정 인허가 데이터(일반음식점), 시군구 단위. `ingest/localdata.py`가 서울판과 같은 분기 패널 형식으로 바꿔서 특징·실험 코드를 그대로 쓴다
+  - 금융기관용 API(`api/`, FastAPI): 미리 계산한 점수를 조회만 한다
+- Python 3.11 이상, pandas, scikit-learn, Streamlit, Plotly, FastAPI, Gemini(`google-genai`, 설명 문장에만 사용).
 - 3명이 각자 AI 도구로 개발한 뒤 합친다. 열 이름과 경로 규칙이 가장 중요하다.
 
 ## 반드시 지킬 것
@@ -15,12 +18,14 @@
 4. **기준선을 약하게 만들지 않는다.** 모델 성능을 높이려고 기준선을 고치는 것은 금지.
 5. **LLM 호출은 `core/llm.py`의 `call_llm_json()`으로만.** 위험 점수 계산에 LLM을 쓰지 않는다. LLM은 이미 계산된 숫자를 설명하는 데만 쓴다.
 6. **담당 경로 밖 파일을 수정하지 않는다.**
-   - 데이터·모델: `ingest/`, `models/model.py`, `engine/`, `prompts/`, `scripts_build_dataset.py`, `tests/test_ingest_*.py`, `tests/test_model_*.py`
-   - 화면: `app.py`, `ui/`, `ingest/seoul.py`의 `load_area_coords`, `tests/test_ui_*.py`
-   - `core/`, `features/`, `experiments/`, `models/baselines.py`, `docs/`, `AGENTS.md`, `requirements.txt`는 팀장만.
+   - 이민준(acme31): `models/model.py`, `engine/`, `prompts/`, `ui/scorecard.py`, `api/`, `tests/test_model_*.py`, `tests/test_api*.py`
+   - 주초현(chochohyun): `ingest/`(단 `ingest/localdata.py`의 열 이름·업태 표는 팀장 확인 후), `scripts_build_dataset.py`, `app.py`, `ui/`(scorecard.py 제외), `tests/test_ingest_*.py`, `tests/test_localdata*.py`, `tests/test_ui_*.py`
+   - `core/`, `features/`, `experiments/`(publish·crosscheck 포함), `models/baselines.py`, `docs/`, `.github/`, `AGENTS.md`, `requirements.txt`는 팀장만.
 7. **라이브러리를 새로 추가하지 않는다.** 필요하면 이유와 함께 제안만 한다.
 8. **API 키·비밀 값은 코드에 쓰지 않는다.** `.env`에서 `core/config.py`로 읽는다.
-9. **데이터를 웹에서 크롤링하지 않는다.** 서울열린데이터광장에서 받은 파일만 쓴다.
+9. **데이터를 웹에서 크롤링하지 않는다.** 서울열린데이터광장, 공공데이터포털·LOCALDATA에서 받은 파일만 쓴다.
+10. **API 응답에서 `track_record`(과거 성적)와 `caution`(주의 문구)을 빼지 않는다.** API는 `experiments.publish`가 만든 파일만 읽고, 요청마다 모델을 학습하지 않는다.
+11. **API 키 원문을 기록·저장하지 않는다.** 호출 기록에는 해시 앞자리(`key_id`)만 남긴다.
 
 ## 화면 문구 규칙
 - "망한다", "반드시", "성공 보장" 같은 단정 표현 금지. "위험이 높은 편", "과거 통계상" 등을 쓴다.
@@ -34,5 +39,5 @@
 - 확실하지 않은 라이브러리 사용법은 공식 문서를 확인하거나, 확인이 필요하다고 말한다.
 
 ## 작업을 마칠 때
-- `pytest` 통과 확인.
+- `pytest` 통과 확인. PR을 올리면 GitHub Actions가 같은 테스트를 자동으로 돌린다(빨간 X면 병합하지 않는다).
 - 무엇을 바꿨고 어떻게 확인했는지 3줄 이내 요약(PR 설명).
