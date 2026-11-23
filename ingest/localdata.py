@@ -14,7 +14,7 @@
   - 프랜차이즈 여부는 인허가 데이터에 없어서 결측(NaN)으로 둔다. 0으로 채우지 않는다.
 
 ⚠️ 열 이름은 공공데이터포털 메타데이터 기준 '예상값'이다. 실제 파일을
-   `python -m ingest.localdata --inspect 파일.csv`로 확인하고 COLUMN_MAP을 맞춘다(#18).
+   `python -m ingest.localdata --inspect 파일.csv`로 확인하고 COLUMN_CANDIDATES를 맞춘다(#18).
 """
 
 from __future__ import annotations
@@ -27,17 +27,19 @@ import pandas as pd
 
 from core.schemas import PANEL_REQUIRED
 
-# 원본 열 이름 → 내부 이름. 확인된 것: 개방자치단체코드, 업태구분명, 인허가일자, 상세영업상태명, 소재지전체주소
-# 확인 필요: 영업상태명, 폐업일자 (LOCALDATA 표준 양식에 있는 것으로 알려져 있음)
-COLUMN_MAP = {
-    "개방자치단체코드": "authority_code",
-    "업태구분명": "biz_type",
-    "인허가일자": "open_date",
-    "폐업일자": "close_date",
-    "영업상태명": "status",
-    "소재지전체주소": "address",
+# 내부 이름 → 원본 열 이름 후보(앞에 있는 것부터 쓴다).
+# 같은 데이터라도 받는 곳(LOCALDATA / 공공데이터포털)에 따라 열 이름이 조금 다르다.
+# 11/23 공공데이터포털 '식품_일반음식점' 파일로 확인: 개방자치단체코드, 업태구분명, 인허가일자,
+#   폐업일자, 영업상태명, 지번주소, 도로명주소 (소재지전체주소는 없음)
+COLUMN_CANDIDATES: dict[str, list[str]] = {
+    "authority_code": ["개방자치단체코드"],
+    "biz_type": ["업태구분명"],
+    "open_date": ["인허가일자"],
+    "close_date": ["폐업일자"],
+    "status": ["영업상태명"],
 }
-OPTIONAL_COLUMNS = {"도로명전체주소": "road_address"}
+# 주소는 여러 열 중 있는 것을 순서대로 채운다(지번주소가 비어 있으면 도로명주소로).
+ADDRESS_CANDIDATES = ["소재지전체주소", "지번주소", "도로명전체주소", "도로명주소"]
 
 CLOSED_STATUS = "폐업"  # 영업상태명 값. 실제 값(예: '폐업', '취소/말소/만료/정지/중지')을 #18에서 확인
 
@@ -64,7 +66,16 @@ INDUSTRY_MAP: dict[str, tuple[str, str]] = {
     "감성주점": ("NL07", "호프·주점"),
     "패스트푸드": ("NL08", "패스트푸드"),
     "뷔페식": ("NL09", "뷔페"),
+    # --- 11/23 빈도표 확인 후 추가 (결과를 본 뒤의 변경. docs/EXPERIMENTS.md 기준 변경 기록 참고) ---
+    "까페": ("NL10", "카페"),
+    "전통찻집": ("NL10", "카페"),
+    "라이브카페": ("NL07", "호프·주점"),
+    # '기타'는 전체의 12.6%(약 29만 건). 버리면 폐업률이 왜곡되므로 독립 업종으로 둔다.
+    # 여러 업태가 섞인 묶음이라 발표의 대표 사례로는 쓰지 않는다.
+    "기타": ("NL99", "기타"),
 }
+# 일부러 넣지 않은 업태: 출장조리, 이동조리, 푸드트럭, 키즈카페, 일반조리판매 등(합계 약 0.15%).
+# 고정 점포 영업이 아니거나 외식업으로 보기 어려워 '미분류'로 세고 뺀다.
 
 # 서울판 업종과 비교할 때 쓰는 대응표(experiments/crosscheck.py). 확실히 같은 것만 넣는다.
 SEOUL_CROSSWALK = {
@@ -82,7 +93,7 @@ FIRST_YEAR = 2019  # 서울판과 같은 기간으로 맞춘다
 
 def read_localdata(path: Path) -> pd.DataFrame:
     """인허가 CSV를 필요한 열만 읽는다. 파일이 수백만 행이라 usecols로 메모리를 줄인다."""
-    wanted = set(COLUMN_MAP) | set(OPTIONAL_COLUMNS)
+    wanted = {c for cands in COLUMN_CANDIDATES.values() for c in cands} | set(ADDRESS_CANDIDATES)
     last_error: Exception | None = None
     for enc in ("cp949", "utf-8-sig"):
         try:
@@ -93,13 +104,28 @@ def read_localdata(path: Path) -> pd.DataFrame:
     else:
         raise ValueError(f"{path}: CP949, UTF-8 둘 다 읽지 못했습니다.") from last_error
 
-    missing = [c for c in COLUMN_MAP if c not in df.columns]
+    out = pd.DataFrame(index=df.index)
+    missing = []
+    for internal, cands in COLUMN_CANDIDATES.items():
+        found = next((c for c in cands if c in df.columns), None)
+        if found is None:
+            missing.append(f"{internal}(후보: {cands})")
+        else:
+            out[internal] = df[found]
+    addr_cols = [c for c in ADDRESS_CANDIDATES if c in df.columns]
+    if not addr_cols:
+        missing.append(f"address(후보: {ADDRESS_CANDIDATES})")
     if missing:
         raise ValueError(
             f"{path}: 필요한 열 {missing}이 없습니다. "
-            "`python -m ingest.localdata --inspect`로 실제 열 이름을 보고 COLUMN_MAP을 고치세요."
+            "`python -m ingest.localdata --inspect`의 '열 이름'을 보고 COLUMN_CANDIDATES에 추가하세요."
         )
-    return df.rename(columns={**COLUMN_MAP, **OPTIONAL_COLUMNS})
+    # 빈 문자열도 결측으로 보고, 앞 후보가 비면 다음 후보로 채운다
+    address = pd.Series(pd.NA, index=df.index, dtype="object")
+    for c in addr_cols:
+        address = address.fillna(df[c].where(df[c].str.strip().ne(""), pd.NA))
+    out["address"] = address
+    return out
 
 
 def _parse_date(s: pd.Series) -> pd.Series:

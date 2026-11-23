@@ -202,7 +202,7 @@
 
 ## #18 전국판 가능 여부 판정 ⚠️ 11/27
 - 담당: 팀장 / 1주차 (11/24 ~ 11/27) / data, lead
-- 수정: `ingest/localdata.py`의 `COLUMN_MAP`, `INDUSTRY_MAP`, `CLOSED_STATUS`, `docs/DATA_SOURCES.md` 전국판 기록표, `docs/EXPERIMENTS.md` 판정 기록
+- 수정: `ingest/localdata.py`의 `COLUMN_CANDIDATES`, `INDUSTRY_MAP`, `CLOSED_STATUS`, `docs/DATA_SOURCES.md` 전국판 기록표, `docs/EXPERIMENTS.md` 판정 기록
 - 할 일
   - 인허가 데이터 식품_일반음식점 전체 파일을 `data/raw/localdata_food.csv`로 받기
   - `python -m ingest.localdata data/raw/localdata_food.csv --inspect` → 열 이름, 연도별 폐업 기록 수, 영업상태 값, 업태 빈도 확인

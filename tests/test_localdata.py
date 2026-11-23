@@ -23,8 +23,8 @@ RAW = _raw([
     ["3130000", "한식", "20190105", "20190320", "폐업", ADDR],
     # 폐업인데 폐업일자 없음 → 계산에서 빼고 보고
     ["3130000", "한식", "20170101", "", "폐업", ADDR],
-    # 미분류 업태 → 빼고 보고
-    ["3130000", "기타", "20190101", "", "영업/정상", ADDR],
+    # 미분류 업태(푸드트럭) → 빼고 보고
+    ["3130000", "푸드트럭", "20190101", "", "영업/정상", ADDR],
     # 휴업은 영업 중으로 본다
     ["3130000", "중국식", "20190201", "", "휴업", ADDR],
 ])
@@ -91,3 +91,23 @@ def test_national_panel_runs_through_same_pipeline():
     data = build_dataset(panel)
     assert data["year"].min() == 2019 and data["year"].max() == 2025
     assert data["risk_next"].notna().any()
+
+
+def test_reads_public_data_portal_format(tmp_path):
+    """공공데이터포털 파일 형식(지번주소·도로명주소, 소재지전체주소 없음)도 읽는다."""
+    df = pd.DataFrame({
+        "개방자치단체코드": ["3130000", "3130000"],
+        "관리번호": ["a", "b"],
+        "인허가일자": ["20190105", "20190210"],
+        "영업상태명": ["영업/정상", "폐업"],
+        "폐업일자": ["", "20200101"],
+        "업태구분명": ["한식", "분식"],
+        "지번주소": ["", "서울특별시 마포구 망원동 2"],
+        "도로명주소": ["서울특별시 마포구 월드컵로 1", ""],
+    })
+    path = tmp_path / "portal.csv"
+    df.to_csv(path, index=False, encoding="cp949")
+    raw = read_localdata(path)
+    assert list(raw["address"]) == ["서울특별시 마포구 월드컵로 1", "서울특별시 마포구 망원동 2"]
+    records, report = clean_records(raw)
+    assert report["kept"] == 2
