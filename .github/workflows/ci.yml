@@ -1,0 +1,27 @@
+# PR과 main 푸시마다 테스트를 자동으로 돌린다.
+# 각자 AI로 만든 코드를 합칠 때, 테스트가 깨진 PR은 병합 전에 빨간 X로 드러난다.
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      # 실제 데이터는 저장소에 없으므로 테스트는 가상 데이터로만 돈다. API 키도 필요 없다.
+      - run: pytest -q
+        env:
+          USE_MOCK: "1"
+      - name: 가상 데이터로 실험·결과 만들기 점검
+        run: |
+          python -m experiments.backtest --synthetic
+          python -m experiments.publish --synthetic --name seoul --out /tmp/published
