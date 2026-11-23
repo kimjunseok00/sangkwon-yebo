@@ -53,6 +53,8 @@ def _track_record(ds: Dataset) -> TrackRecord:
         model_auc={int(y): _nan_to_none(round(float(v), 4)) for y, v in pivot["model"].items()},
         best_baseline_auc={int(y): _nan_to_none(round(float(v), 4)) for y, v in pivot[baselines].max(axis=1).items()},
         gate_passed=bool(ds.meta.get("gate_passed", False)),
+        caution_hit_rate={int(y): v.get("hit_rate") for y, v in ds.meta.get("caution_hit_rate", {}).items()},
+        caution_base_rate={int(y): v.get("base_rate") for y, v in ds.meta.get("caution_hit_rate", {}).items()},
     )
 
 
@@ -153,6 +155,8 @@ def create_app(published_dir: Path | None = None, api_keys: tuple[str, ...] | No
             base_year=int(row["base_year"]),
             predict_year=int(row["predict_year"]),
             level=row["level"],
+            rank_in_industry=int(row["rank_in_industry"]),
+            n_in_industry=int(row["n_in_industry"]),
             percentile=round(float(row["percentile"]), 4),
             score=round(float(row["score"]), 4),
             evidence=Evidence(**{k: _nan_to_none(row.get(k)) for k in Evidence.model_fields}),

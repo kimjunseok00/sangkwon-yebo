@@ -49,16 +49,23 @@ st.dataframe(ds.scorecard.round(3), hide_index=True)
 # --- 2. 다음 해 위험: 미리 계산된 점수만 보여 준다 ---
 scores = ds.scores
 base_year = int(scores["base_year"].iloc[0])
-st.subheader(f"2. {base_year + 1}년 위험이 높은 편인 곳")
+st.subheader(f"2. {base_year + 1}년 예보: 같은 업종 안에서 폐업이 몰릴 가능성이 높은 곳")
 industry = st.selectbox("업종", sorted(scores["industry_name"].dropna().unique()))
-view = scores[scores["industry_name"] == industry].sort_values("percentile", ascending=False)
+view = scores[scores["industry_name"] == industry].sort_values("rank_in_industry")
+view = view.assign(rank_text=view["rank_in_industry"].astype(str) + " / " + view["n_in_industry"].astype(str))
 st.dataframe(
-    view[["area_name", "area_type", "level", "percentile", "close_rate", "close_rate_3y", "stores_avg"]]
-    .head(15).round(3),
+    view[["area_name", "level", "rank_text", "close_rate", "close_rate_3y", "stores_avg"]].head(15).round(3),
     hide_index=True,
     column_config={
-        "area_name": "지역", "area_type": "구분", "level": "위험 수준", "percentile": "업종 내 위험 순위(0~1)",
+        "area_name": "지역", "level": "예보 단계", "rank_text": "업종 내 순위",
         "close_rate": f"{base_year}년 폐업률", "close_rate_3y": "3년 평균 폐업률", "stores_avg": "평균 점포 수",
     },
 )
+hit = ds.meta.get("caution_hit_rate", {})
+if hit:
+    last = hit[max(hit, key=int)]
+    if last.get("hit_rate") is not None:
+        st.caption(f"지난 시험({max(hit, key=int)}년 예보)에서 '주의'로 예보한 곳 중 "
+                   f"{last['hit_rate']:.0%}가 실제로 다음 해 같은 업종 상위 25%였습니다 "
+                   f"(아무 곳이나 골랐다면 {last['base_rate']:.0%}).")
 st.caption(f"{base_year}년 말까지의 데이터로 {base_year + 1}년을 예측한 값입니다. {config.CAUTION_TEXT}")

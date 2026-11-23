@@ -56,7 +56,9 @@ def test_risk_response_has_track_record_and_caution(client):
     body = r.json()
     assert body["caution"] == config.CAUTION_TEXT
     assert body["warning"]  # 가상 데이터 경고
-    assert body["level"] in {"낮은 편", "보통", "높은 편"}
+    assert body["level"] in {"평이", "관심", "주의"}
+    assert 1 <= body["rank_in_industry"] <= body["n_in_industry"]
+    assert set(body["track_record"]["caution_hit_rate"]) == {str(y) for y in config.TEST_FEATURE_YEARS}
     assert body["predict_year"] == body["base_year"] + 1
     assert set(body["track_record"]["model_auc"]) == {str(y) for y in config.TEST_FEATURE_YEARS}
 

@@ -80,11 +80,35 @@ SCORE_COLUMNS = [
     "area_code", "area_name", "area_type", "industry_code", "industry_name",
     "base_year",  # 특징을 만든 연도(예: 2025)
     "predict_year",  # 예측하는 연도(예: 2026)
-    "score",  # 모델 점수(0~1). 확률처럼 읽지 않는다
+    "score",  # 모델 점수(0~1). 확률처럼 읽지 않는다. 화면에는 보여 주지 않는다
     "percentile",  # 같은 업종 안 백분위(1에 가까울수록 위험이 높은 편)
-    "level",  # 낮은 편 / 보통 / 높은 편(업종 내 상위 25%)
+    "rank_in_industry",  # 같은 업종 안 위험 순위(1 = 가장 위험)
+    "n_in_industry",  # 같은 업종 칸 수 → "N곳 중 k번째"
+    "level",  # 예보 단계: LEVELS 중 하나
     "close_rate", "close_rate_3y", "stores_avg",  # 근거 숫자
 ]
+
+# 예보 단계(낮은 → 높은). '주의' = 같은 업종 상위 25% = 정답(risk_next) 정의와 같은 선.
+# 정부 위기경보 체계의 어휘를 빌렸다. '경보', '위험', '망한다' 같은 단정 표현은 쓰지 않는다(AGENTS.md).
+LEVELS = ["평이", "관심", "주의"]
+
+# ---------------------------------------------------------------------------
+# 5) 타임머신 표(history.csv): 시험 연도마다 '그해 말 예보'와 '다음 해 실제 결과'
+# ---------------------------------------------------------------------------
+HISTORY_COLUMNS = [
+    "base_year",  # 예보한 시점(그해 말까지의 데이터로 학습·예보)
+    "target_year",  # 맞히는 연도
+    "area_code", "area_name", "area_type", "industry_code", "industry_name",
+    "percentile", "rank_in_industry", "n_in_industry", "level",  # 그때의 예보
+    "close_rate",  # 예보 시점에 알던 폐업률
+    "next_close_rate",  # 실제 다음 해 폐업률(정답 재료. 화면 표시용, 모델 입력 아님)
+    "actual_caution",  # 실제로 다음 해 같은 업종 상위 25%였나(= risk_next). 1/0
+]
+
+# ---------------------------------------------------------------------------
+# 6) 지역 좌표(areas.csv): 지도용 지역 중심점(WGS84)
+# ---------------------------------------------------------------------------
+AREA_COLUMNS = ["area_code", "area_name", "lat", "lon", "n_points"]
 
 
 class SchemaError(ValueError):

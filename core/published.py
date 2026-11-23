@@ -25,6 +25,8 @@ class Dataset:
     meta: dict
     scores: pd.DataFrame
     scorecard: pd.DataFrame
+    history: pd.DataFrame | None = None  # 타임머신: 시험 연도별 예보와 실제 결과(없을 수 있음)
+    areas: pd.DataFrame | None = None  # 지도: 지역 중심 좌표(없을 수 있음)
     _index: dict[tuple[str, str], dict] = field(default_factory=dict, repr=False)
 
     def __post_init__(self) -> None:
@@ -53,7 +55,10 @@ def load_dataset(path: Path) -> Dataset:
     scores = pd.read_csv(path / "scores.csv", dtype={"area_code": str, "industry_code": str})
     require_columns(scores, SCORE_COLUMNS, f"{path}/scores.csv")
     scorecard = pd.read_csv(path / "scorecard.csv")
-    return Dataset(name=meta["name"], meta=meta, scores=scores, scorecard=scorecard)
+    key_types = {"area_code": str, "industry_code": str}
+    hist = pd.read_csv(path / "history.csv", dtype=key_types) if (path / "history.csv").exists() else None
+    areas = pd.read_csv(path / "areas.csv", dtype={"area_code": str}) if (path / "areas.csv").exists() else None
+    return Dataset(name=meta["name"], meta=meta, scores=scores, scorecard=scorecard, history=hist, areas=areas)
 
 
 def load_all(published_dir: Path) -> dict[str, Dataset]:

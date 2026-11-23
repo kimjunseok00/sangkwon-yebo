@@ -21,6 +21,10 @@ class TrackRecord(BaseModel):
     model_auc: dict[int, float | None] = Field(description="연도별 모델 AUC")
     best_baseline_auc: dict[int, float | None] = Field(description="연도별 단순 기준선 중 나은 쪽 AUC")
     gate_passed: bool = Field(description="사전에 정한 통과 기준을 넘었는지")
+    caution_hit_rate: dict[int, float | None] = Field(
+        default_factory=dict, description="연도별 '주의' 예보 적중률(주의로 예보한 곳 중 실제 다음 해 상위 25% 비율)")
+    caution_base_rate: dict[int, float | None] = Field(
+        default_factory=dict, description="비교 기준: 아무 곳이나 골랐을 때 상위 25%였던 비율")
 
 
 class RiskResponse(BaseModel):
@@ -31,7 +35,9 @@ class RiskResponse(BaseModel):
     industry_name: str | None
     base_year: int
     predict_year: int
-    level: str = Field(description="낮은 편 / 보통 / 높은 편(같은 업종 안 상위 25%)")
+    level: str = Field(description="예보 단계: 평이 / 관심 / 주의(같은 업종 안 상위 25%)")
+    rank_in_industry: int = Field(description="같은 업종 안 위험 순위(1 = 가장 위험)")
+    n_in_industry: int = Field(description="같은 업종 칸 수. 'N곳 중 k번째'")
     percentile: float = Field(description="같은 업종 안 위험 백분위(0~1)")
     score: float = Field(description="모델 점수. 확률로 해석하지 않는다")
     evidence: Evidence

@@ -38,6 +38,10 @@ class Source:
     def build(self, inputs: list[Path]) -> pd.DataFrame:
         raise NotImplementedError
 
+    def areas(self) -> pd.DataFrame | None:
+        """지도용 지역 좌표. build() 뒤에 부른다. 없으면 None."""
+        return None
+
 
 class SeoulSource(Source):
     def find_inputs(self, raw_dir: Path) -> list[Path]:
@@ -61,9 +65,15 @@ class NationalSource(Source):
     def build(self, inputs: list[Path]) -> pd.DataFrame:
         from ingest.localdata import clean_records, read_localdata, to_quarterly_panel
 
+        from ingest.localdata import area_centroids
+
         records, report = clean_records(read_localdata(inputs[0]))
         print(f"  정리 보고: {report}")
+        self._areas = area_centroids(records)
         return build_dataset(to_quarterly_panel(records))
+
+    def areas(self) -> pd.DataFrame | None:
+        return getattr(self, "_areas", None)
 
 
 SOURCES: dict[str, Source] = {
@@ -88,7 +98,7 @@ def make_all(raw_dir: Path = config.RAW_DIR, processed_dir: Path = config.PROCES
         data = src.build(inputs)
         processed_dir.mkdir(parents=True, exist_ok=True)
         data.to_csv(processed_dir / src.dataset_file, index=False)
-        meta = publish(data, processed_dir / "published", name, "real")
+        meta = publish(data, processed_dir / "published", name, "real", areas=src.areas())
         print(f"[{name}] 완료: 칸 {meta['n_cells']:,}개, {meta['gate_detail']}")
         summary[name] = meta
     return summary

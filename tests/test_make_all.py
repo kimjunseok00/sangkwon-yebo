@@ -39,6 +39,9 @@ def _write_national_raw(raw_dir, n=3000, seed=0):
         "폐업일자": np.where(closed, close_d.strftime("%Y%m%d"), ""),
         "지번주소": [f"경기도 가상{a}군 어느읍 1" for a in area],
         "도로명주소": "",
+        # 경기도 어딘가(EPSG:5174 대략값) 주변 좌표. 지역마다 조금씩 다르게
+        "좌표정보(X)": 200000 + area * 3000 + rng.normal(0, 200, n),
+        "좌표정보(Y)": 520000 + area * 2000 + rng.normal(0, 200, n),
     }).to_csv(raw_dir / "localdata_food.csv", index=False, encoding="cp949")
 
 
@@ -60,7 +63,10 @@ def test_both_datasets_published(built):
     loaded = load_all(processed / "published")
     assert set(loaded) == {"seoul", "national"}
     meta = json.loads((processed / "published" / "national" / "meta.json").read_text(encoding="utf-8"))
-    assert "gate_detail" in meta and "gate_gain_per_year" in meta
+    assert "gate_detail" in meta and "gate_gain_per_year" in meta and meta["has_areas"]
+    national = loaded["national"]
+    assert national.history is not None and len(national.areas) == 8
+    assert national.areas["lat"].between(33, 39).all()
 
 
 def test_missing_source_is_skipped(tmp_path):
