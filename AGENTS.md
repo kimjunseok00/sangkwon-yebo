@@ -20,12 +20,15 @@
 6. **담당 경로 밖 파일을 수정하지 않는다.**
    - 이민준(acme31): `models/model.py`, `engine/`, `prompts/`, `ui/scorecard.py`, `api/`, `tests/test_model_*.py`, `tests/test_api*.py`
    - 주초현(chochohyun): `ingest/`(단 `ingest/localdata.py`의 열 이름·업태 표는 팀장 확인 후), `scripts_build_dataset.py`, `app.py`, `ui/`(scorecard.py 제외), `tests/test_ingest_*.py`, `tests/test_localdata*.py`, `tests/test_ui_*.py`
-   - `core/`, `features/`, `experiments/`(publish·crosscheck 포함), `models/baselines.py`, `docs/`, `.github/`, `AGENTS.md`, `requirements.txt`는 팀장만.
+   - `core/`(`core/published.py` 포함), `features/`, `experiments/`(publish·crosscheck·make_all 포함), `models/baselines.py`, `docs/`, `.github/`, `AGENTS.md`, `requirements.txt`는 팀장만.
 7. **라이브러리를 새로 추가하지 않는다.** 필요하면 이유와 함께 제안만 한다.
 8. **API 키·비밀 값은 코드에 쓰지 않는다.** `.env`에서 `core/config.py`로 읽는다.
 9. **데이터를 웹에서 크롤링하지 않는다.** 서울열린데이터광장, 공공데이터포털·LOCALDATA에서 받은 파일만 쓴다.
 10. **API 응답에서 `track_record`(과거 성적)와 `caution`(주의 문구)을 빼지 않는다.** API는 `experiments.publish`가 만든 파일만 읽고, 요청마다 모델을 학습하지 않는다.
 11. **API 키 원문을 기록·저장하지 않는다.** 호출 기록에는 해시 앞자리(`key_id`)만 남긴다.
+12. **화면(`app.py`, `ui/`)과 API(`api/`)는 `published/` 결과만 읽는다.** 읽기는 `core/published.py`(`load_all`, `Dataset`)로 한다.
+    화면에서 모델을 학습하거나 실험(`run_backtest`)을 다시 돌리지 않는다. 결과를 새로 만들 때는 `python -m experiments.make_all`.
+    필요한 값이 `scores.csv`·`meta.json`에 없으면 화면에서 계산하지 말고 팀장에게 요청한다(`experiments/publish.py`에 추가).
 
 ## 화면 문구 규칙
 - "망한다", "반드시", "성공 보장" 같은 단정 표현 금지. "위험이 높은 편", "과거 통계상" 등을 쓴다.

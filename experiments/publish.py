@@ -1,6 +1,6 @@
 """서비스용 결과 만들기: 성적표 + 최신 연도 위험 점수 + 메타정보.
 
-API 서버(api/)와 화면이 읽는 파일을 여기서 한 번에 만든다. 자동 갱신(#22)도 이 명령 하나를 돌린다.
+API 서버(api/)와 화면이 읽는 파일을 여기서 한 번에 만든다. 자동 갱신(#24)도 이 명령 하나를 돌린다.
   1) 과거 맞히기 실험(run_backtest)으로 성적표를 만든다 → scorecard.csv
   2) 정답이 있는 모든 연도로 모델을 다시 학습한다
   3) 정답이 아직 없는 최신 연도(예: 2025년 특징 → 2026년 예측)에 점수를 매긴다 → scores.csv
@@ -65,6 +65,9 @@ def publish(data: pd.DataFrame, out_dir: Path, name: str, source: str) -> dict:
         "base_year": int(scores["base_year"].iloc[0]) if len(scores) else None,
         "n_cells": int(len(scores)),
         "gate_passed": bool(verdict["passed"]),
+        "gate_detail": verdict["detail"],  # 화면에 그대로 보여 줄 판정 문장
+        "gate_gain_per_year": verdict["per_year"],  # 연도별 '모델 AUC - 나은 기준선 AUC'
+        "n_labeled_by_year": {int(y): int(n) for y, n in data[data[TARGET].notna()].groupby("year").size().items()},
         "test_years": list(config.TEST_FEATURE_YEARS),
     }
     (target / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")

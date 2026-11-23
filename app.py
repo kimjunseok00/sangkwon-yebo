@@ -1,51 +1,64 @@
-"""Streamlit 진입점. (팀원 B)
+"""Streamlit 진입점. (주초현)
 
-지금은 뼈대 확인용 최소 화면이다: 데이터(없으면 가상) → 성적표 → 업종별 위험 상위 칸.
-지도(이슈 #5), 후보지 비교(#8), 설명(#7), 금융기관 보고서(#9)는 이 위에 붙인다.
+데이터 흐름: published/<seoul|national>/ (experiments.make_all 또는 publish가 만든 파일) → 화면.
+화면은 실험이나 모델 학습을 직접 돌리지 않는다. API(api/)와 같은 파일을 같은 모듈(core/published.py)로
+읽으므로 화면과 API의 숫자가 항상 같다. 결과 파일이 없으면 가상 데이터로 만들어 보여 주고 경고한다.
+
+지도(이슈 #6), 후보지 비교(#9), 설명(#8)은 이 위에 붙인다. 성적표 그래프는 ui/scorecard.py(#4, 이민준).
 """
 
-import pandas as pd
+import tempfile
+from pathlib import Path
+
 import streamlit as st
 
 from core import config
-from core.schemas import FEATURES, TARGET
-from experiments.backtest import gate, run_backtest
-from features.build import build_dataset
-from models import model as model_mod
+from core.published import Dataset, load_all, synthetic_fallback
 
-DATASET = config.PROCESSED_DIR / "dataset.csv"
+LABELS = {"seoul": "서울판 (상권 단위)", "national": "전국판 (시군구 단위)", "synthetic": "가상 데이터"}
 
 st.set_page_config(page_title="상권예보", page_icon="🗺️", layout="wide")
 st.title("상권예보 (가칭)")
 st.caption("이 동네에 이 가게를 차리면, 내년에 버틸 수 있을까? 성적을 공개하는 상권 위험 예측")
 
 
-@st.cache_data
-def load() -> tuple[pd.DataFrame, bool]:
-    if DATASET.exists():
-        return pd.read_csv(DATASET), False
-    from experiments.synthetic import make_panel
-    return build_dataset(make_panel()), True
+@st.cache_resource
+def load_datasets(published_dir: str) -> dict[str, Dataset]:
+    """결과 파일을 한 번만 읽는다. 없으면 임시 폴더에 가상 결과를 만든다."""
+    found = load_all(Path(published_dir))
+    if found:
+        return found
+    return synthetic_fallback(Path(tempfile.mkdtemp(prefix="sangkwon_synthetic_")))
 
 
-data, is_synthetic = load()
-if is_synthetic:
-    st.warning("실제 데이터가 없어 **가상 데이터**로 표시 중입니다. 숫자에 의미가 없습니다.")
+datasets = load_datasets(str(config.PUBLISHED_DIR))
+names = sorted(datasets, key=lambda n: ["national", "seoul", "synthetic"].index(n) if n in LABELS else 9)
+choice = st.radio("데이터", names, format_func=lambda n: LABELS.get(n, n), horizontal=True)
+ds = datasets[choice]
 
+if ds.meta.get("source") == "synthetic":
+    st.warning("실제 데이터가 없어 **가상 데이터**로 표시 중입니다. 숫자에 의미가 없습니다. "
+               "`python -m experiments.make_all`로 실제 결과를 만드세요.")
+st.caption(f"결과 생성: {ds.meta.get('built_at')} · 칸 {ds.meta.get('n_cells'):,}개")
+
+# --- 1. 성적표: 숨기지 않는다(AGENTS.md). 그래프 버전은 #4에서 ui/scorecard.py로 교체 ---
 st.subheader("1. 성적표: 과거를 얼마나 맞혔나")
-results = run_backtest(data)
-st.dataframe(results.round(3), hide_index=True)
-st.write(gate(results)["detail"])
+st.write(ds.meta.get("gate_detail", ""))
+st.dataframe(ds.scorecard.round(3), hide_index=True)
 
-st.subheader("2. 내년 위험 상위 칸")
-latest = int(data["year"].max())
-fitted = model_mod.fit(data[data[TARGET].notna()])
-now = data[(data["year"] == latest) & (data["stores_avg"] >= config.MIN_STORES)].copy()
-now["risk_score"] = model_mod.predict_score(fitted, now, FEATURES)
-industry = st.selectbox("업종", sorted(now["industry_name"].unique()))
-view = now[now["industry_name"] == industry].sort_values("risk_score", ascending=False)
+# --- 2. 다음 해 위험: 미리 계산된 점수만 보여 준다 ---
+scores = ds.scores
+base_year = int(scores["base_year"].iloc[0])
+st.subheader(f"2. {base_year + 1}년 위험이 높은 편인 곳")
+industry = st.selectbox("업종", sorted(scores["industry_name"].dropna().unique()))
+view = scores[scores["industry_name"] == industry].sort_values("percentile", ascending=False)
 st.dataframe(
-    view[["area_name", "area_type", "stores_avg", "close_rate", "risk_score"]].head(15).round(3),
+    view[["area_name", "area_type", "level", "percentile", "close_rate", "close_rate_3y", "stores_avg"]]
+    .head(15).round(3),
     hide_index=True,
+    column_config={
+        "area_name": "지역", "area_type": "구분", "level": "위험 수준", "percentile": "업종 내 위험 순위(0~1)",
+        "close_rate": f"{base_year}년 폐업률", "close_rate_3y": "3년 평균 폐업률", "stores_avg": "평균 점포 수",
+    },
 )
-st.caption(f"{latest}년 말 기준 특징으로 {latest + 1}년을 예측한 값입니다.")
+st.caption(f"{base_year}년 말까지의 데이터로 {base_year + 1}년을 예측한 값입니다. {config.CAUTION_TEXT}")
