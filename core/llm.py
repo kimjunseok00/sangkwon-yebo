@@ -5,6 +5,8 @@ LLM 호출은 반드시 이 파일의 call_llm_json()을 거친다.
 - 한도 초과 재시도, 호출 횟수 집계를 한 곳에서 처리한다.
 """
 
+from __future__ import annotations
+
 import time
 from typing import TypeVar
 
