@@ -3,7 +3,7 @@
 서울시 상권분석서비스(서울판)와 인허가 데이터(전국판)는 출처가 다르다.
 서울만 떼어 '업종 × 연도'별 폐업률을 두 출처로 각각 계산하고 순위 상관을 본다.
 상관이 높으면 '인허가로 계산한 폐업률이 공식 통계와 같은 것을 재고 있다'는 근거가 된다.
-판정 기준은 docs/EXPERIMENTS.md의 '#18 전국판 판정'에 결과를 보기 전에 적어 둔다.
+판정 기준은 docs/EXPERIMENTS.md의 '#20 전국판 판정'에 결과를 보기 전에 적어 둔다.
 
 실행: python -m experiments.crosscheck --seoul data/processed/dataset.csv --national data/processed/national_dataset.csv
 """
