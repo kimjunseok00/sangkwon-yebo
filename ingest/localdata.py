@@ -91,7 +91,7 @@ SEOUL_CROSSWALK = {
     "NL08": "패스트푸드점",
 }
 
-FIRST_YEAR = 2019  # 서울판과 같은 기간으로 맞춘다
+FIRST_YEAR = 2019  # 전국판 시작 연도. (서울은 서울시 제공 중단으로 2021~이라 기간이 다르다. 값은 11/23 결과 기준이라 바꾸지 않는다)
 
 
 def read_localdata(path: Path) -> pd.DataFrame:
