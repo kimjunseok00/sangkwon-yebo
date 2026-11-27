@@ -126,7 +126,22 @@ def load_area_coords(path: Path) -> pd.DataFrame:
     pyproj.Transformer.from_crs("EPSG:xxxx", "EPSG:4326", always_xy=True)로 변환한다.
     반환 열: area_code, lat, lon
     """
-    raise NotImplementedError("이슈 #6에서 구현")
+    from pyproj import Transformer
+
+    df = read_csv_any(path)
+    require_columns(df, ["상권_코드", "엑스좌표_값", "와이좌표_값"], str(path))
+    x = pd.to_numeric(df["엑스좌표_값"], errors="coerce")
+    y = pd.to_numeric(df["와이좌표_값"], errors="coerce")
+    # 좌표가 빈 칸인 상권은 0으로 채우지 않고 뺀다(결측 ≠ 0).
+    valid = x.notna() & y.notna()
+    # 강남역 상권으로 확인: EPSG:5174 → 강남역 부근. 5176으로 보면 부산 쪽으로 찍힌다.
+    transformer = Transformer.from_crs("EPSG:5174", "EPSG:4326", always_xy=True)
+    lon, lat = transformer.transform(x[valid].to_numpy(), y[valid].to_numpy())
+    return pd.DataFrame({
+        "area_code": df.loc[valid, "상권_코드"].astype(str).to_numpy(),
+        "lat": lat,
+        "lon": lon,
+    }).reset_index(drop=True)
 
 
 def main() -> None:
