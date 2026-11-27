@@ -14,6 +14,7 @@ import streamlit as st
 
 from core import config
 from core.published import Dataset, load_all, synthetic_fallback
+from ui.map import render_area_map
 
 LABELS = {"seoul": "서울판 (상권 단위)", "national": "전국판 (시군구 단위)", "synthetic": "가상 데이터"}
 
@@ -45,6 +46,24 @@ st.caption(f"결과 생성: {ds.meta.get('built_at')} · 칸 {ds.meta.get('n_cel
 st.subheader("1. 성적표: 과거를 얼마나 맞혔나")
 st.write(ds.meta.get("gate_detail", ""))
 st.dataframe(ds.scorecard.round(3), hide_index=True)
+
+# --- 1-지도. 상권 위치를 예보 단계 색으로 표시한다 ---
+# render(ds)가 생기면 그 아래로 옮긴다(이민준 님 PR 대기)
+if ds.areas is None:
+    st.info("지도 데이터가 아직 준비되지 않았습니다. 좌표 파일(areas.csv)이 필요합니다.")
+else:
+    map_industry = st.selectbox(
+        "지도 업종",
+        sorted(ds.scores["industry_name"].dropna().unique()),
+        key="map_industry",
+    )
+    map_scores = ds.scores[ds.scores["industry_name"] == map_industry]
+    map_df = map_scores.merge(ds.areas[["area_code", "lat", "lon"]], on="area_code", how="left")
+    fig, n_dropped = render_area_map(map_df, industry_name=map_industry)
+    if n_dropped > 0:
+        st.caption(f"좌표가 없는 상권 {n_dropped}곳은 지도에서 제외했습니다.")
+    st.plotly_chart(fig, use_container_width=True)
+    st.caption("자료: 서울시 상권분석서비스 · 과거 통계 기반 참고 정보이며 개별 점포의 성패를 보장하지 않습니다.")
 
 # --- 2. 다음 해 위험: 미리 계산된 점수만 보여 준다 ---
 scores = ds.scores
